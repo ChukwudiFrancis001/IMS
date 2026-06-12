@@ -6,6 +6,7 @@ const path          = require('path');
 const methodOverride = require('method-override');
 
 const app = express();
+app.set('trust proxy', 1);
 
 // View engine
 app.set('view engine', 'ejs');
