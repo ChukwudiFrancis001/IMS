@@ -63,3 +63,20 @@ ADMIN_USERNAME=manager ADMIN_PASSWORD=change_me npm run create-admin
 ```bash
 npm start
 ```
+
+## Deploying to Vercel
+
+This Express app can deploy to Vercel from the GitHub repository. The app exports `app.js` for Vercel and uses signed cookie sessions so login works in a serverless environment.
+
+Before deploying, create a hosted MySQL database and add these Vercel environment variables:
+
+```env
+DB_HOST=your_hosted_mysql_host
+DB_USER=your_database_user
+DB_PASSWORD=your_database_password
+DB_NAME=your_database_name
+SESSION_SECRET=use_a_long_random_secret
+NODE_ENV=production
+```
+
+Import `database/schema.sql` into the hosted database, then run `npm run create-admin` locally with `.env` pointed at the hosted database, or create the first admin row through your database console.

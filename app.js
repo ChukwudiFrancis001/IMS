@@ -1,6 +1,6 @@
 require('dotenv').config();
 const express       = require('express');
-const session       = require('express-session');
+const cookieSession = require('cookie-session');
 const flash         = require('connect-flash');
 const path          = require('path');
 const methodOverride = require('method-override');
@@ -16,11 +16,13 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(methodOverride('_method'));
 app.use(express.static(path.join(__dirname, 'public')));
-app.use(session({
-  secret: process.env.SESSION_SECRET || 'ims_secret',
-  resave: false,
-  saveUninitialized: false,
-  cookie: { httpOnly: true, maxAge: 8 * 60 * 60 * 1000 } // 8 hours
+app.use(cookieSession({
+  name: 'ims_session',
+  keys: [process.env.SESSION_SECRET || 'ims_secret'],
+  httpOnly: true,
+  sameSite: 'lax',
+  secure: process.env.NODE_ENV === 'production',
+  maxAge: 8 * 60 * 60 * 1000
 }));
 app.use(flash());
 
@@ -50,5 +52,7 @@ app.get('/', (req, res) => {
 app.use((req, res) => res.status(404).render('404', { title: '404 - Not Found' }));
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`IMS running on http://localhost:${PORT}`));
+if (require.main === module) {
+  app.listen(PORT, () => console.log(`IMS running on http://localhost:${PORT}`));
+}
 module.exports = app;
