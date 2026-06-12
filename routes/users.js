@@ -1,0 +1,11 @@
+const express = require('express');
+const router  = express.Router();
+const ctrl    = require('../controllers/userController');
+const { isAuthenticated, isAdmin } = require('../middleware/auth');
+router.get('/',         isAuthenticated, isAdmin, ctrl.index);
+router.get('/new',      isAuthenticated, isAdmin, ctrl.newForm);
+router.post('/',        isAuthenticated, isAdmin, ctrl.create);
+router.get('/audit',    isAuthenticated, isAdmin, ctrl.auditLog);
+router.get('/:id/edit', isAuthenticated, isAdmin, ctrl.editForm);
+router.post('/:id',     isAuthenticated, isAdmin, ctrl.update);
+module.exports = router;

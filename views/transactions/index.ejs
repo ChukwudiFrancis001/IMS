@@ -1,0 +1,48 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Transactions — IMS</title><link rel="stylesheet" href="/css/style.css"></head>
+<body>
+<%- include('../partials/sidebar') %>
+<div class="main"><%- include('../partials/topbar') %><div class="content">
+  <% if (success && success.length) { %><div class="alert alert-success"><%= success %></div><% } %>
+  <div class="page-actions"><a href="/transactions/new" class="btn btn-primary">+ Record Transaction</a></div>
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-header"><h2>Filter</h2></div>
+    <div class="card-body" style="padding:16px">
+      <form method="GET" style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
+        <div class="form-group" style="margin:0;min-width:180px"><label>Product</label>
+          <select name="product_id"><option value="">All Products</option>
+            <% products.forEach(p => { %><option value="<%= p.product_id %>" <%= filters.product_id==p.product_id?'selected':'' %>><%= p.product_name %></option><% }) %>
+          </select></div>
+        <div class="form-group" style="margin:0"><label>Type</label>
+          <select name="type"><option value="">All</option>
+            <option value="stock_in" <%= filters.type==='stock_in'?'selected':'' %>>Stock In</option>
+            <option value="stock_out" <%= filters.type==='stock_out'?'selected':'' %>>Stock Out</option>
+          </select></div>
+        <div class="form-group" style="margin:0"><label>From</label><input type="date" name="from" value="<%= filters.from||'' %>"></div>
+        <div class="form-group" style="margin:0"><label>To</label><input type="date" name="to" value="<%= filters.to||'' %>"></div>
+        <button type="submit" class="btn btn-accent">Filter</button>
+        <a href="/transactions" class="btn btn-outline">Clear</a>
+      </form>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header"><h2>Transaction History (<%= transactions.length %> records)</h2></div>
+    <div class="card-body"><table>
+      <thead><tr><th>Date</th><th>Product</th><th>Type</th><th>Qty</th><th>Unit Cost</th><th>Reference</th><th>Recorded By</th></tr></thead>
+      <tbody>
+        <% transactions.forEach(t => { %>
+        <tr>
+          <td class="text-muted"><%= new Date(t.transaction_date).toLocaleString() %></td>
+          <td><strong><%= t.product_name %></strong><br><span class="text-muted"><%= t.sku %></span></td>
+          <td><span class="badge <%= t.transaction_type==='stock_in'?'badge-ok':'badge-low' %>"><%= t.transaction_type.replace('_',' ') %></span></td>
+          <td><strong><%= t.quantity %></strong></td>
+          <td><%= t.unit_cost > 0 ? Number(t.unit_cost).toLocaleString() : '—' %></td>
+          <td class="text-muted"><%= t.reference_number || '—' %></td>
+          <td class="text-muted"><%= t.recorded_by %></td>
+        </tr>
+        <% }) %>
+        <% if (!transactions.length) { %><tr><td colspan="7" style="text-align:center;padding:24px" class="text-muted">No transactions found.</td></tr><% } %>
+      </tbody>
+    </table></div>
+  </div>
+</div></div>
+</body></html>

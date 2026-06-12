@@ -1,0 +1,27 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Alerts — IMS</title><link rel="stylesheet" href="/css/style.css"></head>
+<body>
+<%- include('../partials/sidebar') %>
+<div class="main"><%- include('../partials/topbar') %><div class="content">
+  <% if (success && success.length) { %><div class="alert alert-success"><%= success %></div><% } %>
+  <div class="card">
+    <div class="card-header"><h2>All Alerts (<%= alerts.length %>)</h2></div>
+    <div class="card-body"><table>
+      <thead><tr><th>Product</th><th>SKU</th><th>Stock at Trigger</th><th>Threshold</th><th>Status</th><th>Triggered At</th><th>Resolved At</th></tr></thead>
+      <tbody>
+        <% alerts.forEach(a => { %>
+        <tr>
+          <td><strong><%= a.product_name %></strong></td>
+          <td class="text-muted"><%= a.sku %></td>
+          <td><span style="color:var(--danger);font-weight:600"><%= a.stock_at_trigger %></span></td>
+          <td><%= a.threshold_at_trigger %></td>
+          <td><span class="badge badge-<%= a.status %>"><%= a.status %></span></td>
+          <td class="text-muted"><%= new Date(a.triggered_at).toLocaleString() %></td>
+          <td class="text-muted"><%= a.resolved_at ? new Date(a.resolved_at).toLocaleString() : '—' %></td>
+        </tr>
+        <% }) %>
+        <% if (!alerts.length) { %><tr><td colspan="7" style="text-align:center;padding:24px" class="text-muted">No alerts. All stock levels are healthy.</td></tr><% } %>
+      </tbody>
+    </table></div>
+  </div>
+</div></div>
+</body></html>

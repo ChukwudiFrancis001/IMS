@@ -1,0 +1,39 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Products — IMS</title><link rel="stylesheet" href="/css/style.css"></head>
+<body>
+<%- include('../partials/sidebar') %>
+<div class="main"><%- include('../partials/topbar') %><div class="content">
+  <% if (success && success.length) { %><div class="alert alert-success"><%= success %></div><% } %>
+  <% if (error && error.length) { %><div class="alert alert-danger"><%= error %></div><% } %>
+  <div class="page-actions">
+    <% if (user.role === 'admin') { %><a href="/products/new" class="btn btn-primary">+ Add Product</a><% } %>
+  </div>
+  <div class="card">
+    <div class="card-header"><h2>Product Catalogue (<%= products.length %>)</h2></div>
+    <div class="card-body"><table>
+      <thead><tr><th>SKU</th><th>Product Name</th><th>Category</th><th>Current Stock</th><th>Threshold</th><th>Unit Cost</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody>
+        <% products.forEach(p => { %>
+        <tr>
+          <td class="text-muted"><%= p.sku %></td>
+          <td><strong><%= p.product_name %></strong></td>
+          <td><%= p.category_name %></td>
+          <td><strong><%= p.current_stock %></strong> <span class="text-muted"><%= p.unit_of_measure %></span></td>
+          <td><%= p.minimum_threshold %></td>
+          <td><%= Number(p.unit_cost).toLocaleString() %></td>
+          <td><span class="badge badge-<%= p.stock_status.toLowerCase() %>"><%= p.stock_status %></span></td>
+          <td>
+            <% if (user.role === 'admin') { %>
+            <a href="/products/<%= p.product_id %>/edit" class="btn btn-sm btn-outline">Edit</a>
+            <form method="POST" action="/products/<%= p.product_id %>/deactivate" class="inline-form" onsubmit="return confirm('Deactivate this product? Transaction history will be retained.')">
+              <button type="submit" class="btn btn-sm btn-danger">Deactivate</button>
+            </form>
+            <% } %>
+          </td>
+        </tr>
+        <% }) %>
+        <% if (!products.length) { %><tr><td colspan="8" style="text-align:center;padding:24px" class="text-muted">No products yet. <a href="/products/new">Add one.</a></td></tr><% } %>
+      </tbody>
+    </table></div>
+  </div>
+</div></div>
+</body></html>

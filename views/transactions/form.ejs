@@ -1,0 +1,52 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Record Transaction — IMS</title><link rel="stylesheet" href="/css/style.css"></head>
+<body>
+<%- include('../partials/sidebar') %>
+<div class="main"><%- include('../partials/topbar') %><div class="content">
+  <% if (error && error.length) { %><div class="alert alert-danger"><%= error %></div><% } %>
+  <div class="form-card">
+    <h2 style="margin-bottom:20px;color:var(--primary)">Record Stock Transaction</h2>
+    <form method="POST" action="/transactions">
+      <label style="font-size:.82rem;font-weight:600;color:#555;display:block;margin-bottom:6px">Step 1 — Transaction Type</label>
+      <div class="type-toggle">
+        <input type="radio" name="transaction_type" id="in" value="stock_in" checked>
+        <label for="in">📥 Stock In (Purchase / Receipt)</label>
+        <input type="radio" name="transaction_type" id="out" value="stock_out">
+        <label for="out">📤 Stock Out (Sale / Issue)</label>
+      </div>
+      <div class="form-group">
+        <label>Step 2 — Select Product</label>
+        <select name="product_id" id="productSelect" required onchange="updateStockInfo(this)">
+          <option value="">— Choose product —</option>
+          <% products.forEach(p => { %>
+          <option value="<%= p.product_id %>" data-stock="<%= p.current_stock %>" data-threshold="<%= p.minimum_threshold %>" data-status="<%= p.stock_status.toLowerCase() %>" data-uom="<%= p.unit_of_measure %>">
+            <%= p.product_name %> (SKU: <%= p.sku %>)
+          </option>
+          <% }) %>
+        </select>
+        <div class="stock-inline-info" id="stockInfo"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Step 3 — Quantity</label><input type="number" name="quantity" min="1" placeholder="e.g. 50" required></div>
+        <div class="form-group"><label>Unit Cost (optional)</label><input type="number" name="unit_cost" step="0.01" min="0" placeholder="0.00"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Reference No. (optional)</label><input type="text" name="reference_number" placeholder="e.g. PO-2025-001"></div>
+        <div class="form-group"><label>Notes (optional)</label><input type="text" name="notes" placeholder="Any remarks"></div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:8px">
+        <button type="submit" class="btn btn-primary">✔ Record Transaction</button>
+        <a href="/transactions" class="btn btn-outline">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div></div>
+<script>
+function updateStockInfo(sel) {
+  const opt = sel.options[sel.selectedIndex];
+  const info = document.getElementById('stockInfo');
+  if (!opt.value) { info.innerHTML = ''; return; }
+  const stock=opt.dataset.stock,threshold=opt.dataset.threshold,status=opt.dataset.status,uom=opt.dataset.uom;
+  info.innerHTML = `Current stock: <span class="${status}"><strong>${stock} ${uom}</strong></span> &nbsp;&middot;&nbsp; Min. threshold: <strong>${threshold} ${uom}</strong> &nbsp;&middot;&nbsp; Status: <span class="${status}"><strong>${status.toUpperCase()}</strong></span>`;
+}
+</script>
+</body></html>

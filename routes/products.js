@@ -1,0 +1,11 @@
+const express = require('express');
+const router  = express.Router();
+const ctrl    = require('../controllers/productController');
+const { isAuthenticated, isAdmin } = require('../middleware/auth');
+router.get('/',          isAuthenticated, ctrl.index);
+router.get('/new',       isAuthenticated, isAdmin, ctrl.newForm);
+router.post('/',         isAuthenticated, isAdmin, ctrl.create);
+router.get('/:id/edit',  isAuthenticated, isAdmin, ctrl.editForm);
+router.post('/:id',      isAuthenticated, isAdmin, ctrl.update);
+router.post('/:id/deactivate', isAuthenticated, isAdmin, ctrl.deactivate);
+module.exports = router;

@@ -1,0 +1,44 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Audit Log — IMS</title><link rel="stylesheet" href="/css/style.css"></head>
+<body>
+<%- include('../partials/sidebar') %>
+<div class="main"><%- include('../partials/topbar') %><div class="content">
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-header"><h2>Filter Audit Log</h2></div>
+    <div class="card-body" style="padding:16px">
+      <form method="GET" style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
+        <div class="form-group" style="margin:0"><label>Table</label>
+          <select name="table"><option value="">All Tables</option>
+            <option value="products" <%=filters.table==='products'?'selected':'' %>>products</option>
+            <option value="stock_transactions" <%=filters.table==='stock_transactions'?'selected':'' %>>stock_transactions</option>
+            <option value="users" <%=filters.table==='users'?'selected':'' %>>users</option>
+          </select></div>
+        <div class="form-group" style="margin:0"><label>From</label><input type="date" name="from" value="<%= filters.from||'' %>"></div>
+        <div class="form-group" style="margin:0"><label>To</label><input type="date" name="to" value="<%= filters.to||'' %>"></div>
+        <button type="submit" class="btn btn-accent">Filter</button>
+        <a href="/users/audit" class="btn btn-outline">Clear</a>
+      </form>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header"><h2>Audit Log (<%= logs.length %> records)</h2></div>
+    <div class="card-body"><table>
+      <thead><tr><th>Timestamp</th><th>User</th><th>Action</th><th>Table</th><th>Record ID</th><th>Changes</th></tr></thead>
+      <tbody>
+        <% logs.forEach(l => { %>
+        <tr>
+          <td class="text-muted"><%= new Date(l.logged_at).toLocaleString() %></td>
+          <td><strong><%= l.full_name %></strong><br><span class="text-muted"><%= l.username %></span></td>
+          <td><span class="badge <%=l.action_type==='INSERT'?'badge-ok':l.action_type==='DELETE'?'badge-low':'badge-warning'%>"><%= l.action_type %></span></td>
+          <td class="text-muted"><%= l.affected_table %></td>
+          <td class="text-muted"><%= l.affected_record_id || '—' %></td>
+          <td class="text-muted" style="font-size:.75rem;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="<%= l.changed_values ? JSON.stringify(l.changed_values) : '' %>">
+            <%= l.changed_values ? JSON.stringify(l.changed_values).substring(0,80)+(JSON.stringify(l.changed_values).length>80?'..':'') : '—' %>
+          </td>
+        </tr>
+        <% }) %>
+        <% if (!logs.length) { %><tr><td colspan="6" style="text-align:center;padding:24px" class="text-muted">No audit records found.</td></tr><% } %>
+      </tbody>
+    </table></div>
+  </div>
+</div></div>
+</body></html>

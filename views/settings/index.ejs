@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Settings - IMS</title>
+  <script src="/js/theme.js"></script>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<%- include('../partials/sidebar') %>
+<main class="main">
+  <%- include('../partials/topbar') %>
+  <section class="content settings-layout">
+    <div class="settings-panel">
+      <div>
+        <h2>Appearance</h2>
+        <p class="settings-copy">Choose how the system looks on this browser.</p>
+      </div>
+      <div class="theme-toggle" role="group" aria-label="Theme selection">
+        <button type="button" data-theme-choice="light">Light</button>
+        <button type="button" data-theme-choice="dark">Dark</button>
+      </div>
+    </div>
+
+    <div class="settings-panel">
+      <div>
+        <h2>Account</h2>
+        <p class="settings-copy">
+          Signed in as <strong><%= currentUser.name %></strong>
+          <span class="badge badge-<%= currentUser.role %>"><%= currentUser.role %></span>
+        </p>
+      </div>
+      <form method="POST" action="/auth/logout">
+        <button type="submit" class="btn btn-danger">Sign out</button>
+      </form>
+    </div>
+  </section>
+</main>
+<script>
+  const buttons = document.querySelectorAll('[data-theme-choice]');
+  function syncThemeButtons() {
+    const active = window.imsTheme.get();
+    buttons.forEach((button) => {
+      button.classList.toggle('active', button.dataset.themeChoice === active);
+    });
+  }
+  buttons.forEach((button) => {
+    button.addEventListener('click', () => {
+      window.imsTheme.set(button.dataset.themeChoice);
+      syncThemeButtons();
+    });
+  });
+  syncThemeButtons();
+</script>
+</body>
+</html>

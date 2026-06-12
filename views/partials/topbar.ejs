@@ -1,0 +1,6 @@
+<div class="topbar">
+  <h1><%= locals.title || 'IMS' %></h1>
+  <div class="topbar-user">Welcome, <strong><%= locals.currentUser ? currentUser.name : '' %></strong>
+    &nbsp;&middot;&nbsp;<span class="badge badge-<%= locals.currentUser ? currentUser.role : '' %>"><%= locals.currentUser ? currentUser.role : '' %></span>
+  </div>
+</div>
