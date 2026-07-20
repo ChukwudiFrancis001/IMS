@@ -1,29 +1,35 @@
-const bcrypt = require('bcrypt');
-const db = require('../config/db');
+require('dotenv').config();
+const { createClient } = require('@supabase/supabase-js');
 
 async function main() {
-  const username = process.env.ADMIN_USERNAME || 'admin';
-  const password = process.env.ADMIN_PASSWORD || 'admin123';
-  const fullName = process.env.ADMIN_FULL_NAME || 'System Administrator';
-  const passwordHash = await bcrypt.hash(password, 10);
-
-  await db.query(
-    `INSERT INTO users (username, password_hash, full_name, role)
-     VALUES (?, ?, ?, 'admin')
-     ON DUPLICATE KEY UPDATE
-       password_hash = VALUES(password_hash),
-       full_name = VALUES(full_name),
-       role = 'admin',
-       is_active = 1`,
-    [username, passwordHash, fullName]
+  const supabase = createClient(
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY
   );
 
-  console.log(`Admin user ready: ${username}`);
-  await db.end();
+  const email = process.env.ADMIN_EMAIL || 'admin@ims.com';
+  const password = process.env.ADMIN_PASSWORD || 'admin123';
+  const fullName = process.env.ADMIN_FULL_NAME || 'System Administrator';
+
+  const { data, error } = await supabase.auth.admin.createUser({
+    email,
+    password,
+    user_metadata: { full_name: fullName, role: 'admin' },
+    email_confirm: true
+  });
+
+  if (error) {
+    if (error.message.includes('already')) {
+      console.log(`Admin user "${email}" already exists.`);
+    } else {
+      throw new Error(error.message);
+    }
+  } else {
+    console.log(`Admin user created: ${email} (ID: ${data.user.id})`);
+  }
 }
 
 main().catch(async (err) => {
   console.error(err.message);
-  await db.end();
   process.exit(1);
 });

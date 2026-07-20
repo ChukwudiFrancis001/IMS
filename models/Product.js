@@ -1,59 +1,88 @@
-const db = require('../config/db');
-
-const STOCK_SELECT = `
-  SELECT
-    p.product_id, p.sku, p.product_name, p.unit_of_measure,
-    p.minimum_threshold, p.unit_cost, p.is_active, p.description,
-    p.category_id, c.category_name,
-    COALESCE(s.current_stock, 0) AS current_stock,
-    CASE
-      WHEN COALESCE(s.current_stock, 0) <= p.minimum_threshold THEN 'LOW'
-      WHEN COALESCE(s.current_stock, 0) <= p.minimum_threshold * 1.5 THEN 'WARNING'
-      ELSE 'OK'
-    END AS stock_status
-  FROM products p
-  LEFT JOIN categories c ON p.category_id = c.category_id
-  LEFT JOIN (
-    SELECT
-      product_id,
-      COALESCE(SUM(CASE WHEN transaction_type='stock_in' THEN quantity ELSE 0 END), 0)
-        - COALESCE(SUM(CASE WHEN transaction_type='stock_out' THEN quantity ELSE 0 END), 0) AS current_stock
-    FROM stock_transactions
-    GROUP BY product_id
-  ) s ON p.product_id = s.product_id
-`;
+const supabase = require('../config/db');
 
 class Product {
   static async getAllWithStock() {
-    const [rows] = await db.query(STOCK_SELECT + ' WHERE p.is_active = 1 ORDER BY FIELD(stock_status, "LOW", "WARNING", "OK"), p.product_name ASC');
-    return rows;
+    const { data, error } = await supabase
+      .from('product_stock_view')
+      .select('*')
+      .eq('is_active', true)
+      .order('product_name');
+    if (error) throw new Error(error.message);
+    return data.map(p => ({
+      ...p,
+      stock_status:
+        p.current_stock <= p.minimum_threshold ? 'LOW' :
+        p.current_stock <= p.minimum_threshold * 1.5 ? 'WARNING' : 'OK'
+    }));
   }
+
   static async getById(id) {
-    const [rows] = await db.query(STOCK_SELECT + ' WHERE p.product_id = ?', [id]);
-    return rows[0] || null;
+    const { data, error } = await supabase
+      .from('product_stock_view')
+      .select('*')
+      .eq('product_id', id)
+      .single();
+    if (error) throw new Error(error.message);
+    return {
+      ...data,
+      stock_status:
+        data.current_stock <= data.minimum_threshold ? 'LOW' :
+        data.current_stock <= data.minimum_threshold * 1.5 ? 'WARNING' : 'OK'
+    };
   }
+
   static async create({ sku, product_name, category_id, unit_of_measure, minimum_threshold, unit_cost, description }) {
-    const [result] = await db.query(
-      'INSERT INTO products (sku, product_name, category_id, unit_of_measure, minimum_threshold, unit_cost, description) VALUES (?,?,?,?,?,?,?)',
-      [sku, product_name, category_id, unit_of_measure, minimum_threshold, unit_cost, description || null]
-    );
-    return result.insertId;
+    const { data, error } = await supabase
+      .from('products')
+      .insert({
+        sku,
+        product_name,
+        category_id,
+        unit_of_measure: unit_of_measure || 'unit',
+        minimum_threshold: minimum_threshold || 0,
+        unit_cost: unit_cost || 0,
+        description: description || null
+      })
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return data.product_id;
   }
+
   static async update(id, data) {
-    await db.query(
-      'UPDATE products SET product_name=?, category_id=?, unit_of_measure=?, minimum_threshold=?, unit_cost=?, description=? WHERE product_id=?',
-      [data.product_name, data.category_id, data.unit_of_measure, data.minimum_threshold, data.unit_cost, data.description || null, id]
-    );
+    const { error } = await supabase
+      .from('products')
+      .update({
+        product_name: data.product_name,
+        category_id: data.category_id,
+        unit_of_measure: data.unit_of_measure,
+        minimum_threshold: data.minimum_threshold || 0,
+        unit_cost: data.unit_cost || 0,
+        description: data.description || null,
+        updated_at: new Date().toISOString()
+      })
+      .eq('product_id', id);
+    if (error) throw new Error(error.message);
   }
+
   static async deactivate(id) {
-    await db.query('UPDATE products SET is_active=0 WHERE product_id=?', [id]);
+    const { error } = await supabase
+      .from('products')
+      .update({ is_active: false, updated_at: new Date().toISOString() })
+      .eq('product_id', id);
+    if (error) throw new Error(error.message);
   }
+
   static async getCurrentStock(id) {
-    const [rows] = await db.query(
-      "SELECT COALESCE(SUM(CASE WHEN transaction_type='stock_in' THEN quantity ELSE 0 END)-SUM(CASE WHEN transaction_type='stock_out' THEN quantity ELSE 0 END),0) AS current_stock FROM stock_transactions WHERE product_id = ?",
-      [id]
-    );
-    return rows[0].current_stock;
+    const { data, error } = await supabase
+      .from('stock_transactions')
+      .select('transaction_type, quantity')
+      .eq('product_id', id);
+    if (error) throw new Error(error.message);
+    const stockIn = data.filter(t => t.transaction_type === 'stock_in').reduce((sum, t) => sum + t.quantity, 0);
+    const stockOut = data.filter(t => t.transaction_type === 'stock_out').reduce((sum, t) => sum + t.quantity, 0);
+    return stockIn - stockOut;
   }
 }
+
 module.exports = Product;

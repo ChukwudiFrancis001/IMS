@@ -1,18 +1,46 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Users — IMS</title><link rel="stylesheet" href="/css/style.css"></head>
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Users — Haven</title><link rel="stylesheet" href="/css/style.css"></head>
 <body>
 <%- include('../partials/sidebar') %>
 <div class="main"><%- include('../partials/topbar') %><div class="content">
   <% if (success && success.length) { %><div class="alert alert-success"><%= success %></div><% } %>
   <% if (error && error.length) { %><div class="alert alert-danger"><%= error %></div><% } %>
+
+  <% if (pending && pending.length > 0) { %>
+  <div class="card" style="margin-bottom:20px;border-left:4px solid var(--warning)">
+    <div class="card-header"><h2>Pending Approvals (<%= pending.length %>)</h2></div>
+    <div class="card-body"><table>
+      <thead><tr><th>Email</th><th>Full Name</th><th>Registered</th><th>Actions</th></tr></thead>
+      <tbody>
+        <% pending.forEach(u => { %>
+        <tr>
+          <td><strong><%= u.email %></strong></td>
+          <td><%= u.full_name %></td>
+          <td class="text-muted"><%= new Date(u.created_at).toLocaleString() %></td>
+          <td style="display:flex;gap:6px">
+            <form method="POST" action="/users/<%= u.user_id %>/approve" style="display:inline">
+              <button type="submit" class="btn btn-sm btn-primary">Approve</button>
+            </form>
+            <form method="POST" action="/users/<%= u.user_id %>/reject" style="display:inline"
+                  onsubmit="return confirm('Reject and delete this account?')">
+              <button type="submit" class="btn btn-sm btn-danger">Reject</button>
+            </form>
+          </td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table></div>
+  </div>
+  <% } %>
+
   <div class="page-actions"><a href="/users/new" class="btn btn-primary">+ Add User</a></div>
   <div class="card">
-    <div class="card-header"><h2>System Users (<%= users.length %>)</h2></div>
+    <div class="card-header"><h2>System Users (<%= users.filter(u => u.approved).length %>)</h2></div>
     <div class="card-body"><table>
-      <thead><tr><th>Username</th><th>Full Name</th><th>Role</th><th>Status</th><th>Last Login</th><th>Actions</th></tr></thead>
+      <thead><tr><th>Email</th><th>Full Name</th><th>Role</th><th>Status</th><th>Last Login</th><th>Actions</th></tr></thead>
       <tbody>
-        <% users.forEach(u => { %>
+        <% users.filter(u => u.approved).forEach(u => { %>
         <tr>
-          <td><strong><%= u.username %></strong></td>
+          <td><strong><%= u.email %></strong></td>
           <td><%= u.full_name %></td>
           <td><span class="badge badge-<%= u.role %>"><%= u.role %></span></td>
           <td><span class="badge <%= u.is_active?'badge-active':'badge-resolved' %>"><%= u.is_active?'Active':'Inactive' %></span></td>

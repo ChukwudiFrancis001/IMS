@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title><%= title %> — IMS</title><link rel="stylesheet" href="/css/style.css"></head>
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title><%= title %> — Haven</title><link rel="stylesheet" href="/css/style.css"></head>
 <body>
 <%- include('../partials/sidebar') %>
 <div class="main"><%- include('../partials/topbar') %><div class="content">
@@ -23,6 +23,9 @@
         <div class="form-group"><label>Minimum Threshold</label><input type="number" name="minimum_threshold" min="0" value="<%= product ? product.minimum_threshold : 0 %>"></div>
         <div class="form-group"><label>Unit Cost</label><input type="number" name="unit_cost" step="0.01" min="0" value="<%= product ? product.unit_cost : 0 %>"></div>
       </div>
+      <% if (!product) { %>
+      <div class="form-group"><label>Initial Stock Quantity</label><input type="number" name="current_stock" min="0" value="0" placeholder="Enter starting stock (optional)"></div>
+      <% } %>
       <div class="form-group"><label>Description (optional)</label><textarea name="description" rows="3"><%= product ? product.description||'' : '' %></textarea></div>
       <div style="display:flex;gap:10px;margin-top:8px">
         <button type="submit" class="btn btn-primary"><%= product ? 'Save Changes' : 'Create Product' %></button>

@@ -1,8 +1,13 @@
 const express = require('express');
 const router  = express.Router();
 const ctrl    = require('../controllers/authController');
-router.get('/login',  ctrl.getLogin);
-router.post('/login', ctrl.postLogin);
-router.get('/logout', ctrl.logout);
-router.post('/logout', ctrl.logout);
+router.get('/login',    ctrl.getLogin);
+router.post('/login',   ctrl.postLogin);
+router.get('/register', ctrl.getRegister);
+router.post('/register', ctrl.postRegister);
+router.get('/forgot-password', ctrl.getForgotPassword);
+router.post('/forgot-password', ctrl.postForgotPassword);
+router.get('/reset-password', ctrl.getResetPassword);
+router.get('/logout',   ctrl.logout);
+router.post('/logout',  ctrl.logout);
 module.exports = router;

@@ -1,6 +1,6 @@
 <script src="/js/theme.js"></script>
 <div class="sidebar">
-  <div class="sidebar-brand">📦 IMS<span>Inventory Management</span></div>
+  <div class="sidebar-brand">Haven<span>Accurate, efficient, and at ease.</span></div>
   <nav>
     <div class="sidebar-section">Main</div>
     <a href="/dashboard" class="<%= locals.title==='Dashboard'?'active':'' %>">
@@ -13,6 +13,8 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/></svg>Products</a>
     <a href="/reports/stock">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Stock Report</a>
+    <a href="/complaints" class="<%= locals.title==='Complaints'||locals.title==='Log Complaint'?'active':'' %>">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Complaints</a>
     <% if (locals.currentUser && currentUser.role === 'admin') { %>
     <div class="sidebar-section">Admin</div>
     <a href="/alerts">

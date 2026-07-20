@@ -8,41 +8,87 @@ exports.getLogin = (req, res) => {
 exports.postLogin = async (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) {
-    req.flash('error', 'Username and password are required.');
+    req.flash('error', 'Email and password are required.');
     return res.redirect('/auth/login');
   }
   try {
-    const user = await User.findByUsername(username);
-    if (!user) {
-      req.flash('error', 'Invalid username or password.');
+    const { session, user } = await User.signIn(username, password);
+    if (user.user_metadata?.approved === false) {
+      req.flash('error', 'Your account is pending admin approval.');
       return res.redirect('/auth/login');
     }
-    const match = await User.verifyPassword(password, user.password_hash);
-    if (!match) {
-      req.flash('error', 'Invalid username or password.');
-      return res.redirect('/auth/login');
-    }
-    req.session.userId = user.user_id;
-    req.session.role   = user.role;
-    req.session.name   = user.full_name;
-    await User.updateLastLogin(user.user_id);
+    req.session.accessToken = session.access_token;
+    req.session.refreshToken = session.refresh_token;
     await AuditLog.log({
-      user_id: user.user_id,
+      user_id: user.id,
       action_type: 'LOGIN',
       affected_table: 'users',
-      affected_record_id: user.user_id,
-      changed_values: { username: user.username },
+      affected_record_id: null,
+      changed_values: { email: user.email },
       ip_address: req.ip
     });
     res.redirect('/dashboard');
   } catch (err) {
-    console.error(err);
-    req.flash('error', 'A server error occurred. Please try again.');
+    console.error('Login error:', err.message);
+    req.flash('error', 'Invalid email or password.');
     res.redirect('/auth/login');
   }
 };
 
-exports.logout = (req, res) => {
-  req.session = null;
-  res.redirect('/auth/login');
+exports.getRegister = (req, res) => {
+  res.render('auth/register', { title: 'Register', error: req.flash('error'), success: req.flash('success') });
+};
+
+exports.postRegister = async (req, res) => {
+  const { email, password, full_name } = req.body;
+  if (!email || !password || !full_name) {
+    req.flash('error', 'All fields are required.');
+    return res.redirect('/auth/register');
+  }
+  try {
+    await User.createUnapproved({ email, password, full_name });
+    req.flash('success', 'Account created! Please wait for admin approval before signing in.');
+    res.redirect('/auth/login');
+  } catch (err) {
+    console.error('Registration error:', err.message);
+    if (err.message && err.message.includes('already')) {
+      req.flash('error', 'An account with this email already exists.');
+    } else {
+      req.flash('error', 'Could not create account. Please try again.');
+    }
+    res.redirect('/auth/register');
+  }
+};
+
+exports.logout = async (req, res) => {
+  req.session.destroy(() => {
+    res.redirect('/auth/login');
+  });
+};
+
+exports.getForgotPassword = (req, res) => {
+  res.render('auth/forgot-password', { title: 'Forgot Password', error: req.flash('error'), success: req.flash('success') });
+};
+
+exports.postForgotPassword = async (req, res) => {
+  const { email } = req.body;
+  if (!email) {
+    return res.status(400).json({ error: 'Email is required.' });
+  }
+  try {
+    const redirectTo = `${req.protocol}://${req.get('host')}/auth/reset-password`;
+    await User.resetPasswordForEmail(email, redirectTo);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Forgot password error:', err.message);
+    res.json({ success: true });
+  }
+};
+
+exports.getResetPassword = (req, res) => {
+  res.render('auth/reset-password', {
+    title: 'Reset Password',
+    supabaseUrl: process.env.SUPABASE_URL,
+    supabaseAnonKey: process.env.SUPABASE_ANON_KEY
+  });
 };

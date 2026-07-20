@@ -1,33 +1,65 @@
-const db = require('../config/db');
+const supabase = require('../config/db');
 
 class Alert {
   static async getActive() {
-    const [rows] = await db.query(
-      "SELECT a.*, p.product_name, p.sku, p.unit_of_measure FROM alerts a JOIN products p ON a.product_id=p.product_id WHERE a.status='active' ORDER BY (a.stock_at_trigger/NULLIF(a.threshold_at_trigger,0)) ASC"
-    );
-    return rows;
+    const { data, error } = await supabase
+      .from('alerts')
+      .select('*, products(product_name, sku, unit_of_measure)')
+      .eq('status', 'active')
+      .order('triggered_at', { ascending: false });
+    if (error) throw new Error(error.message);
+    return data.map(a => ({
+      ...a,
+      product_name: a.products?.product_name,
+      sku: a.products?.sku,
+      unit_of_measure: a.products?.unit_of_measure
+    }));
   }
+
   static async getAll() {
-    const [rows] = await db.query(
-      'SELECT a.*, p.product_name, p.sku FROM alerts a JOIN products p ON a.product_id=p.product_id ORDER BY a.triggered_at DESC'
-    );
-    return rows;
+    const { data, error } = await supabase
+      .from('alerts')
+      .select('*, products(product_name, sku)')
+      .order('triggered_at', { ascending: false });
+    if (error) throw new Error(error.message);
+    return data.map(a => ({
+      ...a,
+      product_name: a.products?.product_name,
+      sku: a.products?.sku
+    }));
   }
+
   static async evaluate(product_id) {
-    const [[{ current_stock }]] = await db.query(
-      "SELECT COALESCE(SUM(CASE WHEN transaction_type='stock_in' THEN quantity ELSE 0 END)-SUM(CASE WHEN transaction_type='stock_out' THEN quantity ELSE 0 END),0) AS current_stock FROM stock_transactions WHERE product_id=?",
-      [product_id]
-    );
-    const [[product]] = await db.query('SELECT minimum_threshold FROM products WHERE product_id=?', [product_id]);
-    const threshold = product.minimum_threshold;
-    if (current_stock <= threshold) {
-      const [[existing]] = await db.query("SELECT alert_id FROM alerts WHERE product_id=? AND status='active' LIMIT 1", [product_id]);
-      if (!existing) {
-        await db.query('INSERT INTO alerts (product_id, stock_at_trigger, threshold_at_trigger) VALUES (?,?,?)', [product_id, current_stock, threshold]);
-      }
-    } else {
-      await db.query("UPDATE alerts SET status='resolved', resolved_at=NOW() WHERE product_id=? AND status='active'", [product_id]);
-    }
+    const { error } = await supabase.rpc('evaluate_alert', { p_product_id: product_id });
+    if (error) throw new Error(error.message);
+  }
+
+  static async resolve(alert_id) {
+    const { data, error } = await supabase
+      .from('alerts')
+      .update({ status: 'resolved', resolved_at: new Date().toISOString() })
+      .eq('alert_id', alert_id)
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return data;
+  }
+
+  static async delete(alert_id) {
+    const { data: existing, error: fetchErr } = await supabase
+      .from('alerts')
+      .select('*')
+      .eq('alert_id', alert_id)
+      .single();
+    if (fetchErr) throw new Error(fetchErr.message);
+
+    const { error } = await supabase
+      .from('alerts')
+      .delete()
+      .eq('alert_id', alert_id);
+    if (error) throw new Error(error.message);
+    return existing;
   }
 }
+
 module.exports = Alert;

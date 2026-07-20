@@ -6,19 +6,16 @@
   "scripts": {
     "start": "node app.js",
     "dev": "nodemon app.js",
-    "migrate": "node scripts/migrate-db.js",
     "create-admin": "node scripts/create-admin.js"
   },
   "dependencies": {
-    "bcrypt": "^6.0.0",
+    "@supabase/supabase-js": "^2.45.0",
     "connect-flash": "^0.1.1",
-    "cookie-session": "^2.1.1",
     "dotenv": "^16.4.5",
     "ejs": "^3.1.10",
     "express": "^4.19.2",
     "express-session": "^1.18.0",
-    "method-override": "^3.0.0",
-    "mysql2": "^3.11.0"
+    "method-override": "^3.0.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.4"

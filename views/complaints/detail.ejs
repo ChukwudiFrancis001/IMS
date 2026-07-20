@@ -1,0 +1,109 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Complaint #<%= complaint.complaint_id %> — Haven</title><link rel="stylesheet" href="/css/style.css"></head>
+<body>
+<%- include('../partials/sidebar') %>
+<div class="main"><%- include('../partials/topbar') %><div class="content">
+  <% if (success && success.length) { %><div class="alert alert-success"><%= success %></div><% } %>
+  <% if (error && error.length) { %><div class="alert alert-danger"><%= error %></div><% } %>
+
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+    <h2 style="color:var(--primary);margin:0">Complaint #<%= complaint.complaint_id %></h2>
+    <a href="/complaints" class="btn btn-outline">← Back to List</a>
+  </div>
+
+  <div style="display:flex;gap:16px;flex-wrap:wrap">
+    <div class="card" style="flex:2;min-width:300px">
+      <div class="card-header"><h2>Complaint Details</h2></div>
+      <div class="card-body" style="padding:20px">
+        <table style="width:100%">
+          <tr><td style="padding:8px 0;width:140px" class="text-muted">Product</td>
+            <td style="padding:8px 0"><strong><%= complaint.product_name %></strong> (<%= complaint.sku %>)</td></tr>
+          <tr><td style="padding:8px 0" class="text-muted">Category</td>
+            <td style="padding:8px 0"><%= complaint.category_name || '—' %></td></tr>
+          <tr><td style="padding:8px 0" class="text-muted">Type</td>
+            <td style="padding:8px 0"><span class="badge badge-info"><%= complaint.complaint_type.replace('_',' ') %></span></td></tr>
+          <tr><td style="padding:8px 0" class="text-muted">Priority</td>
+            <td style="padding:8px 0"><span class="badge <%= complaint.priority==='critical'?'badge-low':complaint.priority==='high'?'badge-warn':'badge-ok' %>"><%= complaint.priority %></span></td></tr>
+          <tr><td style="padding:8px 0" class="text-muted">Status</td>
+            <td style="padding:8px 0"><span class="badge <%= complaint.status==='resolved'?'badge-ok':complaint.status==='in_progress'?'badge-info':'badge-warn' %>"><%= complaint.status.replace('_',' ') %></span></td></tr>
+          <tr><td style="padding:8px 0" class="text-muted">Logged By</td>
+            <td style="padding:8px 0"><%= complaint.logged_by %></td></tr>
+          <tr><td style="padding:8px 0" class="text-muted">Created</td>
+            <td style="padding:8px 0"><%= new Date(complaint.created_at).toLocaleString() %></td></tr>
+          <tr><td style="padding:8px 0" class="text-muted">Last Updated</td>
+            <td style="padding:8px 0"><%= new Date(complaint.updated_at).toLocaleString() %></td></tr>
+          <% if (complaint.resolved_at) { %>
+          <tr><td style="padding:8px 0" class="text-muted">Resolved</td>
+            <td style="padding:8px 0"><%= new Date(complaint.resolved_at).toLocaleString() %></td></tr>
+          <% } %>
+        </table>
+
+        <div style="margin-top:16px">
+          <label style="font-weight:600;color:#555;display:block;margin-bottom:6px">Description</label>
+          <div style="background:#f8f9fa;padding:12px;border-radius:6px;border:1px solid #e9ecef"><%= complaint.description %></div>
+        </div>
+
+        <% if (complaint.handling_remarks) { %>
+        <div style="margin-top:16px">
+          <label style="font-weight:600;color:#555;display:block;margin-bottom:6px">Handling Remarks</label>
+          <div style="background:#e8f5e9;padding:12px;border-radius:6px;border:1px solid #c8e6c9"><%= complaint.handling_remarks %></div>
+        </div>
+        <% } %>
+      </div>
+    </div>
+
+    <div class="card" style="flex:1;min-width:280px">
+      <div class="card-header"><h2>Update Complaint</h2></div>
+      <div class="card-body" style="padding:20px">
+        <form method="POST" action="/complaints/<%= complaint.complaint_id %>">
+          <div class="form-group">
+            <label>Status</label>
+            <select name="status">
+              <option value="pending" <%= complaint.status==='pending'?'selected':'' %>>Pending</option>
+              <option value="in_progress" <%= complaint.status==='in_progress'?'selected':'' %>>In Progress</option>
+              <option value="resolved" <%= complaint.status==='resolved'?'selected':'' %>>Resolved</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Handling Remarks</label>
+            <textarea name="handling_remarks" rows="3" placeholder="Add notes about this complaint..."><%= complaint.handling_remarks || '' %></textarea>
+          </div>
+
+          <% if (isAdmin) { %>
+          <div class="form-group">
+            <label>Priority (Admin only)</label>
+            <select name="priority">
+              <option value="low" <%= complaint.priority==='low'?'selected':'' %>>Low</option>
+              <option value="medium" <%= complaint.priority==='medium'?'selected':'' %>>Medium</option>
+              <option value="high" <%= complaint.priority==='high'?'selected':'' %>>High</option>
+              <option value="critical" <%= complaint.priority==='critical'?'selected':'' %>>Critical</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Created Date (Admin only)</label>
+            <input type="datetime-local" name="created_at" value="<%= new Date(complaint.created_at).toISOString().slice(0,16) %>">
+          </div>
+          <% } %>
+
+          <div style="display:flex;gap:10px;margin-top:12px">
+            <button type="submit" class="btn btn-primary">✔ Update</button>
+          </div>
+        </form>
+
+        <% if (isAdmin) { %>
+        <hr style="margin:20px 0;border:none;border-top:1px solid #e9ecef">
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <form method="POST" action="/complaints/<%= complaint.complaint_id %>/close" style="display:inline">
+            <button type="submit" class="btn btn-accent" onclick="return confirm('Close this complaint permanently?')">🔒 Close Permanently</button>
+          </form>
+          <form method="POST" action="/complaints/<%= complaint.complaint_id %>/delete" style="display:inline">
+            <button type="submit" class="btn btn-danger" onclick="return confirm('Delete this complaint? This cannot be undone.')">🗑 Delete</button>
+          </form>
+        </div>
+        <% } %>
+      </div>
+    </div>
+  </div>
+</div></div>
+</body></html>

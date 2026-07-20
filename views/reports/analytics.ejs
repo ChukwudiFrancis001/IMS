@@ -1,6 +1,6 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Analytics — IMS</title>
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Analytics — Haven</title>
 <link rel="stylesheet" href="/css/style.css">
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="/js/chart.min.js"></script>
 </head>
 <body>
 <%- include('../partials/sidebar') %>
@@ -17,40 +17,40 @@
   </div>
   <div class="chart-grid">
     <div class="card chart-full"><div class="card-header"><h2>Stock Movement Trend (Σ Additions vs Σ Sales)</h2></div>
-      <div class="card-body" style="padding:20px"><canvas id="trendChart"></canvas></div></div>
+      <div class="card-body chart-body"><canvas id="trendChart"></canvas></div></div>
     <div class="card"><div class="card-header"><h2>Top 10 Products by Transaction Volume</h2></div>
-      <div class="card-body" style="padding:20px"><canvas id="topChart"></canvas></div></div>
+      <div class="card-body chart-body"><canvas id="topChart"></canvas></div></div>
     <div class="card"><div class="card-header"><h2>Current Stock vs Min. Threshold</h2></div>
-      <div class="card-body" style="padding:20px"><canvas id="stockChart"></canvas></div></div>
+      <div class="card-body chart-body"><canvas id="stockChart"></canvas></div></div>
   </div>
 </div></div>
 <script>
-const trend = JSON.parse('<%- JSON.stringify(trendData).replace(/'/g, "\\'") %>');
-const top   = JSON.parse('<%- JSON.stringify(topProducts).replace(/'/g, "\\'") %>');
-const stock = JSON.parse('<%- JSON.stringify(stockLevels.slice(0,15)).replace(/'/g, "\\'") %>');
+const trendData = JSON.parse('<%- JSON.stringify(trendData).replace(/'/g, "\\'") %>');
+const topData   = JSON.parse('<%- JSON.stringify(topProducts).replace(/'/g, "\\'") %>');
+const stockData = JSON.parse('<%- JSON.stringify(stockLevels.slice(0,15)).replace(/'/g, "\\'") %>');
 
 new Chart(document.getElementById('trendChart'), {
   type: 'line',
-  data: { labels: trend.labels,
+  data: { labels: trendData.labels,
     datasets: [
-      { label: 'Stock In (Additions)', data: trend.stock_in, borderColor: '#27AE60', backgroundColor: 'rgba(39,174,96,.1)', tension:.3, fill:true },
-      { label: 'Stock Out (Sales)',    data: trend.stock_out, borderColor: '#E74C3C', backgroundColor: 'rgba(231,76,60,.1)', tension:.3, fill:true }
+      { label: 'Stock In (Additions)', data: trendData.stock_in, borderColor: '#27AE60', backgroundColor: 'rgba(39,174,96,.1)', tension:.3, fill:true },
+      { label: 'Stock Out (Sales)',    data: trendData.stock_out, borderColor: '#E74C3C', backgroundColor: 'rgba(231,76,60,.1)', tension:.3, fill:true }
     ]},
   options: { responsive:true, plugins:{ legend:{position:'top'} }, scales:{ y:{beginAtZero:true} } }
 });
 
 new Chart(document.getElementById('topChart'), {
   type: 'bar',
-  data: { labels: top.map(p=>p.product_name), datasets:[{ label:'Transactions', data:top.map(p=>p.txn_count), backgroundColor:'#2980B9', borderRadius:4 }] },
+  data: { labels: topData.map(p=>p.product_name), datasets:[{ label:'Transactions', data:topData.map(p=>p.txn_count), backgroundColor:'#2980B9', borderRadius:4 }] },
   options: { indexAxis:'y', responsive:true, plugins:{legend:{display:false}}, scales:{x:{beginAtZero:true}} }
 });
 
 new Chart(document.getElementById('stockChart'), {
   type: 'bar',
-  data: { labels: stock.map(p=>p.product_name),
+  data: { labels: stockData.map(p=>p.product_name),
     datasets: [
-      { label:'Current Stock', data:stock.map(p=>p.current_stock), backgroundColor:stock.map(p=>p.stock_status==='LOW'?'#E74C3C':p.stock_status==='WARNING'?'#F39C12':'#27AE60'), borderRadius:4 },
-      { label:'Min. Threshold', data:stock.map(p=>p.minimum_threshold), backgroundColor:'rgba(31,56,100,.25)', borderRadius:4 }
+      { label:'Current Stock', data:stockData.map(p=>p.current_stock), backgroundColor:stockData.map(p=>p.stock_status==='LOW'?'#E74C3C':p.stock_status==='WARNING'?'#F39C12':'#27AE60'), borderRadius:4 },
+      { label:'Min. Threshold', data:stockData.map(p=>p.minimum_threshold), backgroundColor:'rgba(31,56,100,.25)', borderRadius:4 }
     ]},
   options: { responsive:true, plugins:{legend:{position:'top'}}, scales:{y:{beginAtZero:true}} }
 });

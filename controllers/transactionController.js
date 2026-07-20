@@ -3,22 +3,37 @@ const Product     = require('../models/Product');
 const Alert       = require('../models/Alert');
 
 exports.index = async (req, res) => {
-  const { product_id, type, from, to } = req.query;
-  const [transactions, products] = await Promise.all([
-    Transaction.getAll({ product_id, type, from, to }),
-    Product.getAllWithStock()
-  ]);
-  res.render('transactions/index', {
-    title: 'Transactions', transactions, products,
-    filters: { product_id, type, from, to },
-    user: { name: req.session.name, role: req.session.role },
-    success: req.flash('success'), error: req.flash('error')
-  });
+  try {
+    const { product_id, type, from, to } = req.query;
+    const [transactions, products] = await Promise.all([
+      Transaction.getAll({ product_id, type, from, to }),
+      Product.getAllWithStock()
+    ]);
+    res.render('transactions/index', {
+      title: 'Transactions', transactions, products,
+      filters: { product_id, type, from, to },
+      user: { name: req.session.name, role: req.session.role },
+      success: req.flash('success'), error: req.flash('error')
+    });
+  } catch (err) {
+    console.error('Transactions index error:', err.message);
+    res.render('transactions/index', {
+      title: 'Transactions', transactions: [], products: [],
+      filters: {}, user: { name: req.session.name, role: req.session.role },
+      success: req.flash('success'), error: 'Could not load transactions.'
+    });
+  }
 };
 
 exports.newForm = async (req, res) => {
-  const products = await Product.getAllWithStock();
-  res.render('transactions/form', { title: 'Record Transaction', products, user: { name: req.session.name, role: req.session.role }, error: req.flash('error') });
+  try {
+    const products = await Product.getAllWithStock();
+    res.render('transactions/form', { title: 'Record Transaction', products, user: { name: req.session.name, role: req.session.role }, error: req.flash('error') });
+  } catch (err) {
+    console.error('Transaction newForm error:', err.message);
+    req.flash('error', 'Could not load form.');
+    res.redirect('/transactions');
+  }
 };
 
 exports.create = async (req, res) => {
@@ -31,7 +46,6 @@ exports.create = async (req, res) => {
   }
 
   try {
-    // Stock-out guard: check CurrentStock = Σ(Additions) − Σ(Sales)
     if (transaction_type === 'stock_out') {
       const currentStock = await Product.getCurrentStock(product_id);
       if (currentStock - qty < 0) {
@@ -43,10 +57,9 @@ exports.create = async (req, res) => {
     await Transaction.create({
       product_id, transaction_type, quantity: qty,
       unit_cost: unit_cost || 0, reference_number, notes,
-      user_id: req.session.userId
+      user_id: req.session.supabaseUserId
     });
 
-    // Threshold evaluation after every transaction
     await Alert.evaluate(product_id);
 
     req.flash('success', 'Transaction recorded successfully.');

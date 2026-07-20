@@ -1,67 +1,97 @@
-const db = require('../config/db');
+const supabase = require('../config/db');
+const User = require('./User');
 
 class Transaction {
   static async getRecent(limit = 10) {
-    const [rows] = await db.query(
-      'SELECT t.*, p.product_name, p.sku, u.full_name AS recorded_by FROM stock_transactions t JOIN products p ON t.product_id=p.product_id JOIN users u ON t.user_id=u.user_id ORDER BY t.transaction_date DESC LIMIT ?',
-      [limit]
-    );
-    return rows;
+    const { data, error } = await supabase
+      .from('stock_transactions')
+      .select('*, products(product_name, sku)')
+      .order('transaction_date', { ascending: false })
+      .limit(limit);
+    if (error) throw new Error(error.message);
+
+    const userIds = [...new Set(data.map(t => t.user_id))];
+    const userMap = {};
+    await Promise.all(userIds.map(async (id) => {
+      const user = await User.getById(id);
+      userMap[id] = user?.user_metadata?.full_name || user?.email || 'Unknown';
+    }));
+
+    return data.map(t => ({
+      ...t,
+      product_name: t.products?.product_name,
+      sku: t.products?.sku,
+      recorded_by: userMap[t.user_id] || 'Unknown'
+    }));
   }
+
   static async getAll({ product_id, type, from, to } = {}) {
-    let sql = 'SELECT t.*, p.product_name, p.sku, u.full_name AS recorded_by FROM stock_transactions t JOIN products p ON t.product_id=p.product_id JOIN users u ON t.user_id=u.user_id WHERE 1=1';
-    const params = [];
-    if (product_id) { sql += ' AND t.product_id=?'; params.push(product_id); }
-    if (type)       { sql += ' AND t.transaction_type=?'; params.push(type); }
-    if (from)       { sql += ' AND DATE(t.transaction_date)>=?'; params.push(from); }
-    if (to)         { sql += ' AND DATE(t.transaction_date)<=?'; params.push(to); }
-    sql += ' ORDER BY t.transaction_date DESC';
-    const [rows] = await db.query(sql, params);
-    return rows;
-  }
-  static async create({ product_id, transaction_type, quantity, unit_cost, reference_number, notes, user_id }) {
-    const conn = await db.getConnection();
-    try {
-      await conn.beginTransaction();
-      if (transaction_type === 'stock_out') {
-        const [[stock]] = await conn.query(
-          "SELECT COALESCE(SUM(CASE WHEN transaction_type='stock_in' THEN quantity ELSE 0 END),0)-COALESCE(SUM(CASE WHEN transaction_type='stock_out' THEN quantity ELSE 0 END),0) AS current_stock FROM stock_transactions WHERE product_id = ? FOR UPDATE",
-          [product_id]
-        );
-        if (Number(stock.current_stock) < Number(quantity)) {
-          throw new Error(`Insufficient stock. Available: ${stock.current_stock} units.`);
-        }
-      }
-      const [result] = await conn.query(
-        'INSERT INTO stock_transactions (product_id, transaction_type, quantity, unit_cost, reference_number, notes, user_id) VALUES (?,?,?,?,?,?,?)',
-        [product_id, transaction_type, quantity, unit_cost || 0, reference_number || null, notes || null, user_id]
-      );
-      await conn.query(
-        "INSERT INTO audit_log (user_id, action_type, affected_table, affected_record_id, changed_values) VALUES (?,'INSERT','stock_transactions',?,?)",
-        [user_id, result.insertId, JSON.stringify({ product_id, transaction_type, quantity })]
-      );
-      await conn.commit();
-      return result.insertId;
-    } catch (err) {
-      await conn.rollback();
-      throw err;
-    } finally {
-      conn.release();
+    let query = supabase
+      .from('stock_transactions')
+      .select('*, products(product_name, sku)')
+      .order('transaction_date', { ascending: false });
+
+    if (product_id) query = query.eq('product_id', product_id);
+    if (type) query = query.eq('transaction_type', type);
+    if (from) query = query.gte('transaction_date', from);
+    if (to) {
+      const toDate = new Date(to);
+      toDate.setHours(23, 59, 59, 999);
+      query = query.lte('transaction_date', toDate.toISOString());
     }
+
+    const { data, error } = await query;
+    if (error) throw new Error(error.message);
+
+    const userIds = [...new Set(data.map(t => t.user_id))];
+    const userMap = {};
+    await Promise.all(userIds.map(async (id) => {
+      const user = await User.getById(id);
+      userMap[id] = user?.user_metadata?.full_name || user?.email || 'Unknown';
+    }));
+
+    return data.map(t => ({
+      ...t,
+      product_name: t.products?.product_name,
+      sku: t.products?.sku,
+      recorded_by: userMap[t.user_id] || 'Unknown'
+    }));
   }
+
+  static async create({ product_id, transaction_type, quantity, unit_cost, reference_number, notes, user_id }) {
+    const { data, error } = await supabase.rpc('create_stock_transaction', {
+      p_product_id: product_id,
+      p_type: transaction_type,
+      p_qty: quantity,
+      p_cost: unit_cost || 0,
+      p_ref: reference_number || null,
+      p_notes: notes || null,
+      p_user_id: user_id
+    });
+    if (error) throw new Error(error.message);
+    return data;
+  }
+
   static async getTrendData(days = 30) {
-    const [rows] = await db.query(
-      "SELECT DATE(transaction_date) AS date, transaction_type, SUM(quantity) AS total FROM stock_transactions WHERE transaction_date >= DATE_SUB(NOW(), INTERVAL ? DAY) GROUP BY DATE(transaction_date), transaction_type ORDER BY date ASC",
-      [days]
-    );
-    return rows;
+    const { data, error } = await supabase.rpc('get_trend_data', { p_days: days });
+    if (error) throw new Error(error.message);
+    return data.map(r => ({
+      date: new Date(r.txn_date),
+      transaction_type: r.transaction_type,
+      total: Number(r.total)
+    }));
   }
+
   static async getTopProducts(limit = 10) {
-    const [rows] = await db.query(
-      "SELECT p.product_name, p.sku, COUNT(*) AS txn_count, SUM(t.quantity) AS total_qty FROM stock_transactions t JOIN products p ON t.product_id=p.product_id GROUP BY t.product_id ORDER BY txn_count DESC LIMIT ?",
-      [limit]
-    );
-    return rows;
+    const { data, error } = await supabase.rpc('get_top_products', { p_limit: limit });
+    if (error) throw new Error(error.message);
+    return data.map(r => ({
+      product_name: r.product_name,
+      sku: r.sku,
+      txn_count: Number(r.txn_count),
+      total_qty: Number(r.total_qty)
+    }));
   }
 }
+
 module.exports = Transaction;

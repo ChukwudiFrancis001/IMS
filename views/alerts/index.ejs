@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Alerts — IMS</title><link rel="stylesheet" href="/css/style.css"></head>
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Alerts — Haven</title><link rel="stylesheet" href="/css/style.css"></head>
 <body>
 <%- include('../partials/sidebar') %>
 <div class="main"><%- include('../partials/topbar') %><div class="content">
@@ -6,7 +6,7 @@
   <div class="card">
     <div class="card-header"><h2>All Alerts (<%= alerts.length %>)</h2></div>
     <div class="card-body"><table>
-      <thead><tr><th>Product</th><th>SKU</th><th>Stock at Trigger</th><th>Threshold</th><th>Status</th><th>Triggered At</th><th>Resolved At</th></tr></thead>
+      <thead><tr><th>Product</th><th>SKU</th><th>Stock at Trigger</th><th>Threshold</th><th>Status</th><th>Triggered At</th><th>Resolved At</th><th>Actions</th></tr></thead>
       <tbody>
         <% alerts.forEach(a => { %>
         <tr>
@@ -17,9 +17,19 @@
           <td><span class="badge badge-<%= a.status %>"><%= a.status %></span></td>
           <td class="text-muted"><%= new Date(a.triggered_at).toLocaleString() %></td>
           <td class="text-muted"><%= a.resolved_at ? new Date(a.resolved_at).toLocaleString() : '—' %></td>
+          <td style="display:flex;gap:6px">
+            <% if (a.status === 'active') { %>
+            <form method="POST" action="/alerts/<%= a.alert_id %>/resolve" style="display:inline">
+              <button type="submit" class="btn btn-sm btn-success">Resolve</button>
+            </form>
+            <% } %>
+            <form method="POST" action="/alerts/<%= a.alert_id %>/delete" style="display:inline" onsubmit="return confirm('Delete this alert?')">
+              <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+            </form>
+          </td>
         </tr>
         <% }) %>
-        <% if (!alerts.length) { %><tr><td colspan="7" style="text-align:center;padding:24px" class="text-muted">No alerts. All stock levels are healthy.</td></tr><% } %>
+        <% if (!alerts.length) { %><tr><td colspan="8" style="text-align:center;padding:24px" class="text-muted">No alerts. All stock levels are healthy.</td></tr><% } %>
       </tbody>
     </table></div>
   </div>

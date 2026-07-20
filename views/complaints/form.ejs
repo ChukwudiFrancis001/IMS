@@ -1,0 +1,66 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Log Complaint — Haven</title><link rel="stylesheet" href="/css/style.css"></head>
+<body>
+<%- include('../partials/sidebar') %>
+<div class="main"><%- include('../partials/topbar') %><div class="content">
+  <% if (error && error.length) { %><div class="alert alert-danger"><%= error %></div><% } %>
+  <div class="form-card">
+    <h2 style="margin-bottom:20px;color:var(--primary)">Log Product Complaint</h2>
+    <form method="POST" action="/complaints">
+      <div class="form-group">
+        <label>Step 1 — Select Product</label>
+        <select name="product_id" id="productSelect" required onchange="updateProductInfo(this)">
+          <option value="">— Choose product —</option>
+          <% products.forEach(p => { %>
+          <option value="<%= p.product_id %>" data-sku="<%= p.sku %>" data-category="<%= p.category_name %>">
+            <%= p.product_name %> (SKU: <%= p.sku %>)
+          </option>
+          <% }) %>
+        </select>
+        <div id="productInfo" style="margin-top:6px;font-size:13px;color:#666"></div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Step 2 — Complaint Type</label>
+          <select name="complaint_type" required>
+            <option value="">— Select type —</option>
+            <option value="damaged">Damaged Goods</option>
+            <option value="faulty">Faulty Product</option>
+            <option value="wrong_item">Wrong Item Received</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Step 3 — Priority</label>
+          <select name="priority" required>
+            <option value="low">Low</option>
+            <option value="medium" selected>Medium</option>
+            <option value="high">High</option>
+            <option value="critical">Critical</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Step 4 — Description</label>
+        <textarea name="description" rows="4" required placeholder="Describe the issue in detail..."></textarea>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-top:8px">
+        <button type="submit" class="btn btn-primary">✔ Submit Complaint</button>
+        <a href="/complaints" class="btn btn-outline">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div></div>
+<script>
+function updateProductInfo(sel) {
+  const opt = sel.options[sel.selectedIndex];
+  const info = document.getElementById('productInfo');
+  if (!opt.value) { info.innerHTML = ''; return; }
+  const sku = opt.dataset.sku;
+  const category = opt.dataset.category;
+  info.innerHTML = `SKU: <strong>${sku}</strong> &middot; Category: <strong>${category}</strong>`;
+}
+</script>
+</body></html>

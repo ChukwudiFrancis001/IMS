@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Audit Log — IMS</title><link rel="stylesheet" href="/css/style.css"></head>
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Audit Log — Haven</title><link rel="stylesheet" href="/css/style.css"></head>
 <body>
 <%- include('../partials/sidebar') %>
 <div class="main"><%- include('../partials/topbar') %><div class="content">
@@ -27,7 +27,7 @@
         <% logs.forEach(l => { %>
         <tr>
           <td class="text-muted"><%= new Date(l.logged_at).toLocaleString() %></td>
-          <td><strong><%= l.full_name %></strong><br><span class="text-muted"><%= l.username %></span></td>
+          <td><strong><%= l.full_name || 'System' %></strong><br><span class="text-muted"><%= l.user_id ? l.user_id.substring(0,8)+'...' : '' %></span></td>
           <td><span class="badge <%=l.action_type==='INSERT'?'badge-ok':l.action_type==='DELETE'?'badge-low':'badge-warning'%>"><%= l.action_type %></span></td>
           <td class="text-muted"><%= l.affected_table %></td>
           <td class="text-muted"><%= l.affected_record_id || '—' %></td>

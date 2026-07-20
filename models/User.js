@@ -1,32 +1,139 @@
-const db = require('../config/db');
-const bcrypt = require('bcrypt');
+const { createClient } = require('@supabase/supabase-js');
+const supabase = require('../config/db');
 
 class User {
-  static async findByUsername(username) {
-    const [rows] = await db.query('SELECT * FROM users WHERE username = ? AND is_active = 1', [username]);
-    return rows[0] || null;
+  static async findByEmail(email) {
+    const { data, error } = await supabase.auth.admin.getUserByEmail(email);
+    if (error || !data?.user) return null;
+    return data.user;
   }
-  static async findById(id) {
-    const [rows] = await db.query('SELECT * FROM users WHERE user_id = ?', [id]);
-    return rows[0] || null;
+
+  static async getById(id) {
+    const { data, error } = await supabase.auth.admin.getUserById(id);
+    if (error || !data?.user) return null;
+    return data.user;
   }
+
   static async getAll() {
-    const [rows] = await db.query('SELECT user_id, username, full_name, role, is_active, created_at, last_login FROM users ORDER BY created_at DESC');
-    return rows;
+    const { data, error } = await supabase.auth.admin.listUsers();
+    if (error) throw new Error(error.message);
+    return data.users.map(u => ({
+      user_id: u.id,
+      email: u.email,
+      full_name: u.user_metadata?.full_name || '',
+      role: u.user_metadata?.role || 'staff',
+      is_active: !u.banned,
+      approved: u.user_metadata?.approved !== false,
+      last_login: u.last_sign_in_at,
+      created_at: u.created_at
+    }));
   }
-  static async create({ username, password, full_name, role }) {
-    const password_hash = await bcrypt.hash(password, 10);
-    const [result] = await db.query('INSERT INTO users (username, password_hash, full_name, role) VALUES (?,?,?,?)', [username, password_hash, full_name, role]);
-    return result.insertId;
+
+  static async create({ email, password, full_name, role }) {
+    const { data, error } = await supabase.auth.admin.createUser({
+      email,
+      password,
+      user_metadata: { full_name, role: role || 'staff', approved: true },
+      email_confirm: true
+    });
+    if (error) throw new Error(error.message);
+    return data.user.id;
   }
-  static async update(id, { full_name, role, is_active }) {
-    await db.query('UPDATE users SET full_name=?, role=?, is_active=? WHERE user_id=?', [full_name, role, is_active, id]);
+
+  static async createUnapproved({ email, password, full_name }) {
+    const { data, error } = await supabase.auth.admin.createUser({
+      email,
+      password,
+      user_metadata: { full_name, role: 'staff', approved: false },
+      email_confirm: true
+    });
+    if (error) throw new Error(error.message);
+    return data.user.id;
   }
-  static async updateLastLogin(id) {
-    await db.query('UPDATE users SET last_login = NOW() WHERE user_id = ?', [id]);
+
+  static async approve(id) {
+    const user = await User.getById(id);
+    if (!user) throw new Error('User not found');
+    const { error } = await supabase.auth.admin.updateUserById(id, {
+      user_metadata: {
+        ...user.user_metadata,
+        approved: true
+      }
+    });
+    if (error) throw new Error(error.message);
   }
-  static async verifyPassword(plain, hash) {
-    return bcrypt.compare(plain, hash);
+
+  static async reject(id) {
+    const { error } = await supabase.auth.admin.deleteUser(id);
+    if (error) throw new Error(error.message);
+  }
+
+  static async getPending() {
+    const { data, error } = await supabase.auth.admin.listUsers();
+    if (error) throw new Error(error.message);
+    return data.users
+      .filter(u => u.user_metadata?.approved === false)
+      .map(u => ({
+        user_id: u.id,
+        email: u.email,
+        full_name: u.user_metadata?.full_name || '',
+        role: u.user_metadata?.role || 'staff',
+        created_at: u.created_at
+      }));
+  }
+
+  static async update(id, { full_name, role, is_active, password }) {
+    const updateData = { user_metadata: { full_name, role } };
+    if (password) updateData.password = password;
+    const { error } = await supabase.auth.admin.updateUserById(id, updateData);
+    if (error) throw new Error(error.message);
+    if (!is_active) {
+      const { error: banError } = await supabase.auth.admin.updateUserById(id, { ban_duration: '100y' });
+      if (banError) throw new Error(banError.message);
+    } else {
+      const { error: unbanError } = await supabase.auth.admin.updateUserById(id, { ban_duration: 'none' });
+      if (unbanError) throw new Error(unbanError.message);
+    }
+  }
+
+  static async signIn(email, password) {
+    const authClient = createClient(
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY
+    );
+    const { data, error } = await authClient.auth.signInWithPassword({ email, password });
+    if (error) throw new Error(error.message);
+    delete authClient.rest;
+    return data;
+  }
+
+  static async getUserFromToken(accessToken) {
+    const authClient = createClient(
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY
+    );
+    const { data: { user }, error } = await authClient.auth.getUser(accessToken);
+    if (error || !user) return null;
+    return user;
+  }
+
+  static async resetPasswordForEmail(email, redirectTo) {
+    const { data, error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+    if (error) throw new Error(error.message);
+    return data;
+  }
+
+  static async signOut(accessToken) {
+    await supabase.auth.admin.signOut(accessToken);
+  }
+
+  static getRole(user) {
+    return user?.user_metadata?.role || 'staff';
+  }
+
+  static getFullName(user) {
+    return user?.user_metadata?.full_name || user?.email || '';
   }
 }
+
 module.exports = User;

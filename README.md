@@ -1,82 +1,82 @@
 # Inventory Management System
 
-This is a Node.js, Express, EJS, and MySQL inventory management system.
+A web-based Inventory Management System (IMS) for Small and Medium Enterprises (SMEs), built with Node.js, Express, Supabase (PostgreSQL), and Chart.js.
 
-## Project Objectives Covered
+## Features
 
-1. **Normalized relational database**: `database/schema.sql` separates users, categories, products, transactions, alerts, and audit logs with foreign keys.
-2. **Automated stock calculation**: stock is calculated from transactions as `SUM(stock_in) - SUM(stock_out)`.
-3. **Low-stock notifications**: every transaction evaluates the product threshold and creates or resolves alerts.
-4. **Secure authentication and audit trail**: users log in with bcrypt-hashed passwords; stock/product/user changes are written to `audit_log`.
-5. **Graphical analytics**: `/reports/analytics` renders chart data from transactions and current stock.
+- **Product Management**: CRUD operations with SKU tracking, categories, and soft deletion
+- **Stock Transactions**: Atomic stock-in/stock-out with row-level locking and race-condition prevention
+- **Automated Alerts**: Threshold-based notification system with idempotent evaluation
+- **Authentication & Authorization**: Supabase Auth with JWT sessions, role-based access control (Admin/Staff)
+- **Staff Self-Registration**: User registration with admin approval workflow
+- **Audit Trail**: Immutable log of every data-modifying operation with user attribution
+- **Complaint Management**: Track and resolve product quality issues
+- **Analytics Dashboard**: Interactive charts (stock trends, top products, threshold visualization)
+- **Password Reset**: Self-service password reset via Supabase email
+
+## Tech Stack
+
+- **Backend**: Node.js, Express.js
+- **Database**: PostgreSQL (via Supabase)
+- **Authentication**: Supabase Auth
+- **Templates**: EJS
+- **Charts**: Chart.js
+- **Session**: express-session
 
 ## Setup
 
 1. Install dependencies:
-
 ```bash
 npm install
 ```
 
-2. Create a `.env` file:
-
-```env
-DB_HOST=localhost
-DB_USER=root
-DB_PASSWORD=your_password
-DB_NAME=ims_db
-SESSION_SECRET=replace_this_with_a_long_random_value
+2. Create `.env` file with your Supabase credentials:
+```
+SUPABASE_URL=your_supabase_url
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+SUPABASE_ANON_KEY=your_anon_key
+SESSION_SECRET=your_session_secret
 PORT=3000
 ```
 
-3. Import the database:
+3. Run the database schema in Supabase SQL Editor (`database/schema.sql`)
 
+4. Create an admin user:
 ```bash
-mysql -u root -p < database/schema.sql
+node scripts/create-admin.js
 ```
 
-If you already had an older database from a previous version of the project, run:
-
+5. Start the server:
 ```bash
-npm run migrate
+node app.js
 ```
 
-4. Create the first admin user:
+6. Access at `http://localhost:3000`
 
-```bash
-npm run create-admin
+## Project Structure
+
+```
+├── app.js                 # Express application setup
+├── config/
+│   └── db.js              # Supabase client initialization
+├── controllers/           # Route handlers
+├── middleware/             # Auth & RBAC middleware
+├── models/                # Database operations
+├── routes/                # Express routes
+├── views/                 # EJS templates
+├── public/                # Static assets (CSS, JS)
+├── database/
+│   ├── schema.sql         # Full database schema
+│   └── fix_rpc.sql        # RPC fix script
+└── scripts/
+    └── create-admin.js    # Admin user creation
 ```
 
-By default this creates:
+## Default Admin Credentials
 
-- Username: `admin`
+- Email: `admin@ims.com`
 - Password: `admin123`
 
-You can override that before running the script:
+## License
 
-```bash
-ADMIN_USERNAME=manager ADMIN_PASSWORD=change_me npm run create-admin
-```
-
-5. Start the app:
-
-```bash
-npm start
-```
-
-## Deploying to Vercel
-
-This Express app can deploy to Vercel from the GitHub repository. The app exports `app.js` for Vercel and uses signed cookie sessions so login works in a serverless environment.
-
-Before deploying, create a hosted MySQL database and add these Vercel environment variables:
-
-```env
-DB_HOST=your_hosted_mysql_host
-DB_USER=your_database_user
-DB_PASSWORD=your_database_password
-DB_NAME=your_database_name
-SESSION_SECRET=use_a_long_random_secret
-NODE_ENV=production
-```
-
-Import `database/schema.sql` into the hosted database, then run `npm run create-admin` locally with `.env` pointed at the hosted database, or create the first admin row through your database console.
+This project is for academic purposes.

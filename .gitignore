@@ -3,8 +3,12 @@ node_modules/
 vercel.env
 npm-debug.log*
 *.log
+*.txt
 .DS_Store
 Thumbs.db
 Microsoft/
-
 .vercel
+.opencode/
+opencode.json
+screenshots/
+.tmp-chrome-screenshots/

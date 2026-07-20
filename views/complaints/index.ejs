@@ -1,0 +1,82 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Complaints — Haven</title><link rel="stylesheet" href="/css/style.css"></head>
+<body>
+<%- include('../partials/sidebar') %>
+<div class="main"><%- include('../partials/topbar') %><div class="content">
+  <% if (success && success.length) { %><div class="alert alert-success"><%= success %></div><% } %>
+  <% if (error && error.length) { %><div class="alert alert-error"><%= error %></div><% } %>
+
+  <div class="page-actions"><a href="/complaints/new" class="btn btn-primary">+ Log Complaint</a></div>
+
+  <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+    <div class="card" style="flex:1;min-width:150px">
+      <div class="card-body" style="text-align:center;padding:16px">
+        <div style="font-size:28px;font-weight:700;color:#E67E22"><%= stats.pending %></div>
+        <div class="text-muted">Pending</div>
+      </div>
+    </div>
+    <div class="card" style="flex:1;min-width:150px">
+      <div class="card-body" style="text-align:center;padding:16px">
+        <div style="font-size:28px;font-weight:700;color:#3498DB"><%= stats.in_progress %></div>
+        <div class="text-muted">In Progress</div>
+      </div>
+    </div>
+    <div class="card" style="flex:1;min-width:150px">
+      <div class="card-body" style="text-align:center;padding:16px">
+        <div style="font-size:28px;font-weight:700;color:#27AE60"><%= stats.resolved %></div>
+        <div class="text-muted">Resolved</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-header"><h2>Filter</h2></div>
+    <div class="card-body" style="padding:16px">
+      <form method="GET" style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
+        <div class="form-group" style="margin:0;min-width:180px"><label>Product</label>
+          <select name="product_id"><option value="">All Products</option>
+            <% products.forEach(p => { %><option value="<%= p.product_id %>" <%= filters.product_id==p.product_id?'selected':'' %>><%= p.product_name %></option><% }) %>
+          </select></div>
+        <div class="form-group" style="margin:0"><label>Status</label>
+          <select name="status"><option value="">All</option>
+            <option value="pending" <%= filters.status==='pending'?'selected':'' %>>Pending</option>
+            <option value="in_progress" <%= filters.status==='in_progress'?'selected':'' %>>In Progress</option>
+            <option value="resolved" <%= filters.status==='resolved'?'selected':'' %>>Resolved</option>
+          </select></div>
+        <div class="form-group" style="margin:0"><label>Priority</label>
+          <select name="priority"><option value="">All</option>
+            <option value="low" <%= filters.priority==='low'?'selected':'' %>>Low</option>
+            <option value="medium" <%= filters.priority==='medium'?'selected':'' %>>Medium</option>
+            <option value="high" <%= filters.priority==='high'?'selected':'' %>>High</option>
+            <option value="critical" <%= filters.priority==='critical'?'selected':'' %>>Critical</option>
+          </select></div>
+        <button type="submit" class="btn btn-accent">Filter</button>
+        <a href="/complaints" class="btn btn-outline">Clear</a>
+      </form>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><h2>Complaints (<%= complaints.length %> records)</h2></div>
+    <div class="card-body"><table>
+      <thead><tr>
+        <th>ID</th><th>Date</th><th>Product</th><th>Type</th><th>Priority</th><th>Status</th><th>Logged By</th><th></th>
+      </tr></thead>
+      <tbody>
+        <% complaints.forEach(c => { %>
+        <tr>
+          <td><strong>#<%= c.complaint_id %></strong></td>
+          <td class="text-muted"><%= new Date(c.created_at).toLocaleDateString() %></td>
+          <td><strong><%= c.product_name %></strong><br><span class="text-muted"><%= c.sku %></span></td>
+          <td><span class="badge badge-info"><%= c.complaint_type.replace('_',' ') %></span></td>
+          <td><span class="badge <%= c.priority==='critical'?'badge-low':c.priority==='high'?'badge-warn':'badge-ok' %>"><%= c.priority %></span></td>
+          <td><span class="badge <%= c.status==='resolved'?'badge-ok':c.status==='in_progress'?'badge-info':'badge-warn' %>"><%= c.status.replace('_',' ') %></span></td>
+          <td class="text-muted"><%= c.logged_by %></td>
+          <td><a href="/complaints/<%= c.complaint_id %>" class="btn btn-outline" style="padding:4px 12px;font-size:13px">View</a></td>
+        </tr>
+        <% }) %>
+        <% if (!complaints.length) { %><tr><td colspan="8" style="text-align:center;padding:24px" class="text-muted">No complaints found.</td></tr><% } %>
+      </tbody>
+    </table></div>
+  </div>
+</div></div>
+</body></html>
